@@ -1,0 +1,79 @@
+<html>
+<head>
+    <title>$title</title>
+    <link rel="stylesheet" href="http://aui-cdn.atlassian.com/aui-adg/5.9.12/css/aui.min.css" media="all">
+    <meta name="decorator" content="atl.general">
+</head>
+<body class="aui-page-focused aui-page-size-large">
+<header class="aui-page-header">
+    <div class="aui-page-header-inner">
+        <div class="aui-page-header-main">
+            <h1>$title</h1>
+        </div>
+    </div>
+</header>
+<div class="aui-page-panel">
+    <div class="aui-page-panel-inner">
+        <div class="aui-page-panel-content">
+            <form id="admin" class="aui" action="VersionControl.java">
+                <fieldset>
+                        <label>Project: <span class="aui-icon icon-required"></span></label>
+                        <select data-container-class="project-ss" class="select" id="param" name="project">
+                        </select>
+                        <script>
+                            jQuery.ajax('/jira/rest/api/2/project', {
+                                dataType : 'json',
+                            }).done(function(res){
+                                var projSelect = jQuery('#param');
+                                jQuery.each(res, function(idx, item){
+                                    projSelect.append('<option value="' + item.key +'">' + item.name + '</option>');
+                                });
+                                projSelect.auiSelect2();
+                            });
+                        </script>
+                        </br></br>
+                        <div class="buttons-container">
+                            <input type="submit" class="aui-button" value="Apply">
+                            <button class="aui-button aui-button-link" resolved="">Cancel</button>
+                        </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+
+<!--
+        <html>
+        <head>
+        <meta name="decorator" content="atl.general">
+        $webResourceManager.requireResource("com.atlassian.auiplugin:ajs")
+        $webResourceManager.requireResource("com.atlassian.auiplugin:aui-select2")
+        <title>Projects example</title>
+        <content tag="section">projects</content>
+        <body>
+        <form id="admin" class="aui">
+
+        <div class="field-group">
+        <label>Project: <span class="aui-icon icon-required"></span></label>
+        <select data-container-class="project-ss" class="select" id="param" name="project">
+        </select>
+        <script>
+        jQuery.ajax('/jira/rest/api/2/project', {
+        dataType : 'json',
+        }).done(function(res){
+        var projSelect = jQuery('#param');
+        jQuery.each(res, function(idx, item){
+        projSelect.append('<option value="' + item.key +'">' + item.name + '</option>');
+        });
+        projSelect.auiSelect2();
+        });
+        </script>
+        </br></br>
+        </div>
+        </div>
+
+        </form>
+        </body>
+        </html>-->
