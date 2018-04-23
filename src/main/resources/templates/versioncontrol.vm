@@ -2,9 +2,72 @@
 <head>
     <title>$title</title>
     <link rel="stylesheet" href="http://aui-cdn.atlassian.com/aui-adg/5.9.12/css/aui.min.css" media="all">
+    $webResourceManager.requireResource("com.atlassian.auiplugin:dialog2")
+    $webResourceManager.requireResource("com.atlassian.auiplugin:aui-select2")
+    $webResourceManager.requireResource("com.atlassian.auiplugin:aui-form-notification")
     <meta name="decorator" content="atl.general">
 </head>
 <body class="aui-page-focused aui-page-size-large">
+<script>
+    jQuery.ajax('/jira/rest/api/2/project', {
+        dataType : 'json',
+    }).done(function(res){
+        var projSelect = jQuery('#projects');
+        jQuery.each(res, function(idx, item){
+            projSelect.append('<option value="' + item.id +'">' + item.name + '</option>');
+        });
+        //projSelect.auiSelect2();
+    });
+
+    AJS.toInit(function() {
+        // Hides the dialog
+        AJS.$("#dialog-close-button").click(function(e) {
+            e.preventDefault();
+            AJS.dialog2("#demo-dialog").hide();
+            $("#action").val("");
+        });
+
+        // Hides the dialog
+        AJS.$("#dialog-submit-button").click(function(e) {
+            e.preventDefault();
+            AJS.dialog2("#demo-dialog").hide();
+            $("#admin").submit();
+        });
+    });
+
+    // Shows the dialog when an action button is clicked
+    function dialog(action){
+        var valid = true;
+        if(!$("#versions").val()){
+            console.log("versions: "+ $("#versions").val());
+            valid = false;
+            //$("#versions").prop("data-aui-notification-field");
+            $("#versions-error").text("Please select a value");
+        }
+        else{
+            $("#versions-error").text("");
+        }
+        if(!$("#projects").val()){
+            console.log("projects: "+ $("#projects").val());
+            valid = false;
+            $("#projects-error").text("Please select a value");
+        }
+        else{
+            $("#projects-error").text("");
+        }
+        if(valid){
+            var template = "${confirm_message}";
+            var pos = template.indexOf("*");
+            var message = template.substr(0, pos) + "<b>" + action + "</b>" + template.substr(pos+1);
+
+            $("#confirm-message").html(message);
+
+            AJS.dialog2("#demo-dialog").show();
+            $("#action").val(action);
+        }
+    }
+
+</script>
 <header class="aui-page-header">
     <div class="aui-page-header-inner">
         <div class="aui-page-header-main">
@@ -19,88 +82,76 @@
                 <fieldset>
                     <p>
                         <b>Description:</b><br>
-                        Select the versions to create in the selected projects.
+                        $description<br>
                     </p>
-                    #if ($errors.size()>0)
-                    <div class="aui-message error shadowed">
-                        #foreach($error in $errors)
-                        <p class="title">
-                            <span class="aui-icon icon-error"></span>
-                            <strong>$error</strong>
-                        </p>
-                        #end
-                    </div>
-                    <!-- .aui-message -->
-                    #end
                     <div class="field-group">
                         <label>Project: <span class="aui-icon icon-required"></span></label>
-                        <select data-container-class="project-ss" class="select" id="projects" name="projects" size="5" multiple>
+                        <select data-aui-notification-field data-container-class="project-ss" class="select" id="projects" name="projects" size="5" multiple>
                         </select>
-                        <script>
-                            jQuery.ajax('/jira/rest/api/2/project', {
-                                dataType : 'json',
-                            }).done(function(res){
-                                var projSelect = jQuery('#projects');
-                                jQuery.each(res, function(idx, item){
-                                    projSelect.append('<option value="' + item.id +'">' + item.name + '</option>');
-                                });
-                                projSelect.auiSelect2();
-                            });
-                        </script>
+                        <div class="error" id="projects-error"></div>
                     </div>
                     <div class="field-group">
                         <label>Versions: <span class="aui-icon icon-required"></span></label>
-                        <select data-container-class="versions-ss" class="select" id="versions" name="versions" size="5" multiple>
+                        <select data-aui-notification-field data-container-class="versions-ss" class="select" id="versions" name="versions" size="5" multiple>
                             #if($versions)
                                 #foreach($version in $versions)
                                     <option value="$version.getId()">$version.getName()</option>
                                 #end
                             #end
                         </select>
+                        <div class="error" id="versions-error"></div>
                     </div>
                     <div class="buttons-container">
-                        <input type="submit" class="aui-button" value="Apply">
-                        <button class="aui-button aui-button-link" resolved="">Cancel</button>
+                        <input type="hidden" id="action" name="action" value="">
+                        <input type="button" class="aui-button aui-button-primary" onclick="dialog('add')" value="Add">
+                        <input type="button" class="aui-button" onclick="dialog('archive')" value="Archive">
+                        <input type="button" class="aui-button" onclick="dialog('unarchive')" value="Unarchive" >
+                        <input type="button" class="aui-button" onclick="dialog('delete')" value="Delete">
+                        <a class="aui-button aui-button-link" href="/jira/secure/project/ViewProjects.jspa">Cancel</a>
                     </div>
                 </fieldset>
             </form>
         </div>
     </div>
 </div>
+#if ($errors && $errors.size()>0)
+<div class="aui-page-panel">
+    <div class="aui-page-panel-inner">
+        <aside class="aui-page-panel-sidebar">
+            #foreach($error in $errors)
+            <div class="aui-message $error.getType()">
+                <p class="title">
+                    <strong>$error.getText()</strong>
+                </p>
+            </div>
+            #end
+        </aside>
+    </div>
+</div>
+#end
+<!-- Render the dialog -->
+<section role="dialog" id="demo-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true">
+    <!-- Dialog header -->
+    <header class="aui-dialog2-header">
+        <!-- The dialog's title -->
+        <h2 class="aui-dialog2-header-main">$confirm_action</h2>
+        <!-- Close icon -->
+        <a class="aui-dialog2-header-close">
+            <span class="aui-icon aui-icon-small aui-iconfont-close-dialog">Close</span>
+        </a>
+    </header>
+    <!-- Main dialog content -->
+    <div class="aui-dialog2-content">
+        <p id="confirm-message"></p>
+    </div>
+    <!-- Dialog footer -->
+    <footer class="aui-dialog2-footer">
+        <!-- Actions to render on the right of the footer -->
+        <div class="aui-dialog2-footer-actions">
+            <button id="dialog-submit-button" class="aui-button aui-button-primary">OK</button>
+            <button id="dialog-close-button" class="aui-button aui-button-link">Close</button>
+        </div>
+    </footer>
+</section>
 </body>
 </html>
-
-<!--
-        <html>
-        <head>
-        <meta name="decorator" content="atl.general">
-        $webResourceManager.requireResource("com.atlassian.auiplugin:ajs")
-        $webResourceManager.requireResource("com.atlassian.auiplugin:aui-select2")
-        <title>Projects example</title>
-        <content tag="section">projects</content>
-        <body>
-        <form id="admin" class="aui">
-
-        <div class="field-group">
-        <label>Project: <span class="aui-icon icon-required"></span></label>
-        <select data-container-class="project-ss" class="select" id="param" name="project">
-        </select>
-        <script>
-        jQuery.ajax('/jira/rest/api/2/project', {
-        dataType : 'json',
-        }).done(function(res){
-        var projSelect = jQuery('#param');
-        jQuery.each(res, function(idx, item){
-        projSelect.append('<option value="' + item.key +'">' + item.name + '</option>');
-        });
-        projSelect.auiSelect2();
-        });
-        </script>
-        </br></br>
-        </div>
-        </div>
-
-        </form>
-        </body>
-        </html>
--->
