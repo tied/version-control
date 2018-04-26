@@ -25,3 +25,9 @@ hs_err_pid*
 .svn/
 
 target/
+
+.idea/
+
+src/test/xml/
+
+versioncontrol.iml

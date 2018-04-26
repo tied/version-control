@@ -103,11 +103,11 @@
                     </div>
                     <div class="buttons-container">
                         <input type="hidden" id="action" name="action" value="">
-                        <input type="button" class="aui-button aui-button-primary" onclick="dialog('add')" value="Add">
-                        <input type="button" class="aui-button" onclick="dialog('archive')" value="Archive">
-                        <input type="button" class="aui-button" onclick="dialog('unarchive')" value="Unarchive" >
-                        <input type="button" class="aui-button" onclick="dialog('delete')" value="Delete">
-                        <a class="aui-button aui-button-link" href="/jira/secure/project/ViewProjects.jspa">Cancel</a>
+                        <input type="button" id="button-add" class="aui-button aui-button-primary" onclick="dialog('add')" value="Add">
+                        <input type="button" id="button-archive" class="aui-button" onclick="dialog('archive')" value="Archive">
+                        <input type="button" id="button-unarchive" class="aui-button" onclick="dialog('unarchive')" value="Unarchive" >
+                        <input type="button" id="button-delete" class="aui-button" onclick="dialog('delete')" value="Delete">
+                        <a id="button-cancel" class="aui-button aui-button-link" href="/jira/secure/project/ViewProjects.jspa">Cancel</a>
                     </div>
                 </fieldset>
             </form>

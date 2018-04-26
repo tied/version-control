@@ -1,5 +1,6 @@
 package com.asigra.plugins.servlet;
 
+import com.asigra.plugins.versioncontrol.api.Message;
 import com.atlassian.jira.bc.JiraServiceContext;
 import com.atlassian.jira.bc.JiraServiceContextImpl;
 import com.atlassian.jira.bc.ServiceResult;
@@ -8,15 +9,14 @@ import com.atlassian.jira.bc.project.version.VersionBuilder;
 import com.atlassian.jira.bc.project.version.VersionService;
 import com.atlassian.jira.project.Project;
 import com.atlassian.jira.project.ProjectManager;
+import com.atlassian.jira.project.version.DeleteVersionWithCustomFieldParameters;
 import com.atlassian.jira.project.version.Version;
 import com.atlassian.jira.project.version.VersionManager;
-import com.atlassian.jira.project.version.DeleteVersionWithCustomFieldParameters;
 import com.atlassian.jira.security.JiraAuthenticationContext;
 import com.atlassian.jira.user.ApplicationUser;
 import com.atlassian.jira.util.ErrorCollection;
 import com.atlassian.plugin.spring.scanner.annotation.imports.ComponentImport;
 import com.atlassian.sal.api.message.I18nResolver;
-import com.atlassian.sal.api.user.UserManager;
 import com.atlassian.templaterenderer.TemplateRenderer;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
@@ -29,12 +29,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
-
-import com.asigra.plugins.versioncontrol.api.Message;
 
 //import java.lang.Long;
 
@@ -93,7 +92,13 @@ public class VersionControl extends HttpServlet{
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-
+            if (jiraAuthenticationContext.getLoggedInUser() == null){
+                String url = req.getContextPath()+"/login.jsp?permissionViolation=true&os_destination="+ URLEncoder.encode(req.getRequestURI().replace("/jira",""), "UTF-8");
+                StringBuffer stringBuffer = new StringBuffer();
+//                String fullUrl =(stringBuffer.append(url).append("?").append(req.getQueryString())).toString();
+                String fullUrl = url;
+                resp.sendRedirect(fullUrl);
+            }
             // Create an empty context map to pass into the render method
             Map<String, Object> context = Maps.newHashMap();
             // Make sure to set the contentType otherwise bad things happen
@@ -120,7 +125,7 @@ public class VersionControl extends HttpServlet{
             return;
         }
 
-        ApplicationUser user = getCurrentUser(req);
+        ApplicationUser user = getCurrentUser();
         ArrayList<Message> errors = new ArrayList<Message>();
         String act = req.getParameter("action");
 
@@ -174,7 +179,11 @@ public class VersionControl extends HttpServlet{
                                     errors.add(createMessage("Version was archived successfully.", versionToArchive.getName(), project, SUCCESS_STYLE_CLASS));
                                 }
                             }
-                        } else {
+                            else {
+                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                            }
+                        }
+                        else {
                             errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
                         }
                     }
@@ -200,7 +209,11 @@ public class VersionControl extends HttpServlet{
                                     errors.add(createMessage("Version was unarchived successfully.", versionToUnarchive.getName(), project, SUCCESS_STYLE_CLASS));
                                 }
                             }
-                        } else {
+                            else {
+                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                            }
+                        }
+                        else {
                             errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
                         }
                     }
@@ -234,7 +247,11 @@ public class VersionControl extends HttpServlet{
                                     errors.add(createMessage("Version was deleted successfully.", version.getName(), project, SUCCESS_STYLE_CLASS));
                                 }
                             }
-                        } else {
+                            else {
+                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                            }
+                        }
+                        else {
                             errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
                         }
                     }
@@ -280,7 +297,7 @@ public class VersionControl extends HttpServlet{
     }
 
 
-    private ApplicationUser getCurrentUser(HttpServletRequest req) {
+    private ApplicationUser getCurrentUser() { //HttpServletRequest req
         // To get the current user, we first get the username from the session.
         // Then we pass that over to the jiraUserManager in order to get an
         // actual User object.
@@ -322,19 +339,9 @@ public class VersionControl extends HttpServlet{
 
     private ArrayList<Message> createMessages(ArrayList<String> messages, String versionName, String projectId, String styleClass){
         ArrayList<Message> result = new ArrayList<Message>();
-        String text;
-        String projectName = "unknown";
-
-        if(projectId != null) {
-            Project project = projectManager.getProjectObj(Long.parseLong(projectId));
-            if(project != null) {
-                projectName = project.getName();
-            }
-        }
 
         for (String message : messages) {
-            text = "["+ projectName +" - "+ versionName +"]: "+ message;
-            result.add(new Message(styleClass, text));
+            result.add(createMessage(message, versionName, projectId, styleClass));
         }
         return result;
     }
