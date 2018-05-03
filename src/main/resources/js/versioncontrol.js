@@ -1,4 +1,3 @@
-/*
 AJS.toInit(function() {
     AJS.$.ajax('/jira/rest/api/2/project', {
         dataType : 'json',
@@ -64,7 +63,7 @@ function dialog(action){
 function getAffectedIssueCount(){
     var count = 0;
     var affected = AJS.$('#affected-count');
-    affected.html('<br><h3>Affected Issues:</h3><p>Please resolve these conflicts through the tool that is activated when you manually delete a version in a project if you wish to re-map the version data in those issues.</p>');
+    affected.html('<br><h3>Affected Issues:</h3><p>If you don\'t need another version swapped in in the affected issues, proceed with deletion here. Otherwise, resolve these conflicts through the tool that is activated when you manually delete a version in a project. This will allow you to re-map the versions in those issues to another version. </p>');
     var selectedVersions = getSelectValues(AJS.$("#versions"), "text");
     var selectedProjects = getSelectValues(AJS.$("#projects"), "value");
     var selectedProjectsLabels = getSelectValues(AJS.$("#projects"), "text");
@@ -164,4 +163,3 @@ function getSelectValues(selectElement, valueSelector) {
   }
   return result;
 }
-*/
