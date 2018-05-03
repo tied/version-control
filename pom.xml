@@ -10,7 +10,10 @@
         <url>http://www.asigra.com/</url>
     </organization>
     <name>Version Manager</name>
-    <description>This is the Version Manager plugin for Atlassian JIRA.</description>
+    <description>
+        The Version Manager plugin lets a JIRA Administrator Add, Archive, Unarchive, and Delete versions across multiple projects with ease.
+        The links to the plugin interface can be found on the projects list page or the Add-ons administration section under the OTHER group of sidebar links.
+    </description>
     <packaging>atlassian-plugin</packaging>
     <dependencies>
         <dependency>
@@ -167,6 +170,7 @@
                 <configuration>
                     <productVersion>${jira.version}</productVersion>
                     <productDataVersion>${jira.version}</productDataVersion>
+                    <compressResources>false</compressResources>
                     <!-- Uncomment to install TestKit backdoor in JIRA. -->
                     <!--
                     <pluginArtifacts>

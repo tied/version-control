@@ -30,10 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 //import java.lang.Long;
 
@@ -69,8 +66,8 @@ public class VersionControl extends HttpServlet{
 //    private com.atlassian.jira.user.util.UserManager jiraUserManager;
 
     private static final String UI_TEMPLATE = "/templates/versioncontrol.vm";
-    private static final String NULL_VERSION = "A version could not be found. It may have been manually deleted.";
-    private static final String NULL_PROJECT = "A project could not be found. It may have been manually deleted.";
+    private static final String NULL_VERSION = "A version could not be found. It does not exist in that project or may have been manually deleted.";
+//    private static final String NULL_PROJECT = "A project could not be found. It may have been manually deleted.";
     private static final String ERROR_STYLE_CLASS = "aui-message-error";
     private static final String SUCCESS_STYLE_CLASS = "aui-message-success";
 
@@ -126,158 +123,152 @@ public class VersionControl extends HttpServlet{
         }
 
         ApplicationUser user = getCurrentUser();
-        ArrayList<Message> errors = new ArrayList<Message>();
+        ArrayList<Message> messages = new ArrayList<Message>();
         String act = req.getParameter("action");
 
-        if (act.equals("add")) {
-            Collection<Version> versionsToAdd = new HashSet();
-            for (String version : versions) {
-                // get version object by id and put it into a collection or array
-                versionsToAdd.add(versionManager.getVersion(Long.parseLong(version)));
-            }
-            for (String project : projects) {
-                if(project != null) {
-                    for (Version version : versionsToAdd) {
-                        if (version != null) {
-                            VersionBuilder versionBuilder = versionService.newVersionBuilder();
-                            versionBuilder = setVersionBuilder(versionBuilder, version, project);
-
-                            VersionService.VersionBuilderValidationResult result = versionService.validateCreate(user, versionBuilder);
-                            if (result.getErrorCollection().hasAnyErrors()) {
-                                // If the validation fails, we re-render the edit page with the errors in the context
-                                errors.addAll(processErrors(result.getErrorCollection(), version.getName(), project));
-
-                            } else {
-                                // If the validation passes, we perform the update then redirect the user back to the
-                                // page with the list of issues
-                                versionService.create(user, result);
-                                errors.add(createMessage("Version was created successfully.", version.getName(), project, SUCCESS_STYLE_CLASS));
-                            }
-                        } else {
-                            errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                        }
-                    }
-                }
-                else {
-                    errors.add(createMessage(NULL_PROJECT, "unknown", null, ERROR_STYLE_CLASS));
-                }
-            }
+        switch(act) {
+            case "add":
+                messages.addAll(processAdd(projects, versions, user));
+                break;
+            case "archive":
+                messages.addAll(processArchive(projects, versions, user));
+                break;
+            case "unarchive":
+                messages.addAll(processUnarchive(projects, versions, user));
+                break;
+            case "delete":
+                messages.addAll(processDelete(projects, versions, user));
+                break;
         }
-        if (act.equals("archive")) {
-            for (String project : projects) {
-                if(project != null) {
-                    for (String version : versions) {
-                        if (version != null) {
-                            //get the corresponding version in the project
-                            Version versionToArchive = versionManager.getVersion(Long.parseLong(project), versionManager.getVersion(Long.parseLong(version)).getName());
-                            if (versionToArchive != null) {
-                                VersionService.ArchiveVersionValidationResult result = versionService.validateArchiveVersion(user, versionToArchive);
-                                if (result.getErrorCollection().hasAnyErrors()) {
-                                    errors.addAll(processErrors(result.getErrorCollection(), versionToArchive.getName(), project));
-                                } else {
-                                    versionService.archiveVersion(result);
-                                    errors.add(createMessage("Version was archived successfully.", versionToArchive.getName(), project, SUCCESS_STYLE_CLASS));
-                                }
-                            }
-                            else {
-                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                            }
-                        }
-                        else {
-                            errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                        }
-                    }
-                }
-                else {
-                    errors.add(createMessage(NULL_PROJECT, "unknown", null, ERROR_STYLE_CLASS));
-                }
-            }
-        }
-        if (act.equals("unarchive")) {
-            for (String project : projects) {
-                if(project != null) {
-                    for (String version : versions) {
-                        if (version != null) {
-                            //get the corresponding version in the project
-                            Version versionToUnarchive = versionManager.getVersion(Long.parseLong(project), versionManager.getVersion(Long.parseLong(version)).getName());
-                            if (versionToUnarchive != null) {
-                                VersionService.ArchiveVersionValidationResult result = versionService.validateUnarchiveVersion(user, versionToUnarchive);
-                                if (result.getErrorCollection().hasAnyErrors()) {
-                                    errors.addAll(processErrors(result.getErrorCollection(), versionToUnarchive.getName(), project));
-                                } else {
-                                    versionService.unarchiveVersion(result);
-                                    errors.add(createMessage("Version was unarchived successfully.", versionToUnarchive.getName(), project, SUCCESS_STYLE_CLASS));
-                                }
-                            }
-                            else {
-                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                            }
-                        }
-                        else {
-                            errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                        }
-                    }
-                }
-                else {
-                    errors.add(createMessage(NULL_PROJECT, "unknown", null, ERROR_STYLE_CLASS));
-                }
-            }
-        }
-        if (act.equals("delete")) {
-            Collection<Version> versionsToDelete = new HashSet();
-            for (String version : versions) {
-                // get version object by id and put it into a collection so that we know which versions to delete even when they get deleted
-                versionsToDelete.add(versionManager.getVersion(Long.parseLong(version)));
-            }
-            for (String project : projects) {
-                if(project != null) {
-                    for (Version version : versionsToDelete) {
-                        if (version != null) {
-                            //get the corresponding version from the project
-                            Version versionToDelete = versionManager.getVersion(Long.parseLong(project), version.getName());
-                            //delete the version with validation
-                            if (versionToDelete != null) {
-                                JiraServiceContext jsc = new JiraServiceContextImpl(user);
-                                DeleteVersionWithReplacementsParameterBuilder deleteVersionWithReplacementsParameterBuilder = versionService.createVersionDeletaAndReplaceParameters(versionToDelete);
-                                DeleteVersionWithCustomFieldParameters deleteVersionWithCustomFieldParameters = deleteVersionWithReplacementsParameterBuilder.build();
-                                ServiceResult result = versionService.deleteVersionAndSwap(jsc, deleteVersionWithCustomFieldParameters);
-                                if (result.getErrorCollection().hasAnyErrors()) {
-                                    errors.addAll(processErrors(result.getErrorCollection(), version.getName(), project));
-                                } else {
-                                    errors.add(createMessage("Version was deleted successfully.", version.getName(), project, SUCCESS_STYLE_CLASS));
-                                }
-                            }
-                            else {
-                                errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                            }
-                        }
-                        else {
-                            errors.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
-                        }
-                    }
-                }
-                else {
-                    errors.add(createMessage(NULL_PROJECT, "unknown", null, ERROR_STYLE_CLASS));
-                }
-            }
-
-        }
-        if (!errors.isEmpty()) {
-            // If the validation fails, we re-render the edit page with the errors in the context
+        if (!messages.isEmpty()) {
+            // If there are any messages, we re-render the edit page with the "messages" in the context
             resp.setContentType("text/html;charset=utf-8");
             context = prepContext(context);
-            context.put("errors", errors);
+            context.put("errors", messages);
             templateRenderer.render(UI_TEMPLATE, context, resp.getWriter());
         } else {
-            // If the validation passes, we perform the update then redirect the user back
+            // If the there are no messages, we redirect the user back
             resp.sendRedirect("versioncontrol");
         }
+    }
+
+    private ArrayList<Message> processAdd(String[] projects, String[] versions, ApplicationUser user) {
+        ArrayList<Message> messages = new ArrayList<Message>();
+
+        Collection<Version> versionsToAdd = new HashSet();
+        for (String version : versions) {
+            // get version object by id and put it into a collection or array
+            versionsToAdd.add(versionManager.getVersion(Long.parseLong(version)));
+        }
+        for (String project : projects) {
+            for (Version version : versionsToAdd) {
+                VersionBuilder versionBuilder = versionService.newVersionBuilder();
+                versionBuilder = setVersionBuilder(versionBuilder, version, project);
+
+                VersionService.VersionBuilderValidationResult result = versionService.validateCreate(user, versionBuilder);
+                if (result.getErrorCollection().hasAnyErrors()) {
+                    // If the validation fails, we re-render the edit page with the errors in the context
+                    messages.addAll(processErrors(result.getErrorCollection(), version.getName(), project));
+
+                } else {
+                    // If the validation passes, we perform the update then redirect the user back to the
+                    // page with the list of issues
+                    versionService.create(user, result);
+                    messages.add(createMessage("Version was created successfully.", version.getName(), project, SUCCESS_STYLE_CLASS));
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    private ArrayList<Message> processArchive(String[] projects, String[] versions, ApplicationUser user) {
+        ArrayList<Message> messages = new ArrayList<Message>();
+
+        for (String project : projects) {
+            for (String version : versions) {
+                //get the corresponding version in the project
+                Version versionToArchive = versionManager.getVersion(Long.parseLong(project), versionManager.getVersion(Long.parseLong(version)).getName());
+                if (versionToArchive != null) {
+                    VersionService.ArchiveVersionValidationResult result = versionService.validateArchiveVersion(user, versionToArchive);
+                    if (result.getErrorCollection().hasAnyErrors()) {
+                        messages.addAll(processErrors(result.getErrorCollection(), versionToArchive.getName(), project));
+                    } else {
+                        versionService.archiveVersion(result);
+                        messages.add(createMessage("Version was archived successfully.", versionToArchive.getName(), project, SUCCESS_STYLE_CLASS));
+                    }
+                }
+                else {
+                    messages.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    private ArrayList<Message> processUnarchive(String[] projects, String[] versions, ApplicationUser user) {
+        ArrayList<Message> messages = new ArrayList<Message>();
+
+        for (String project : projects) {
+            for (String version : versions) {
+                //get the corresponding version in the project
+                Version versionToUnarchive = versionManager.getVersion(Long.parseLong(project), versionManager.getVersion(Long.parseLong(version)).getName());
+                if (versionToUnarchive != null) {
+                    VersionService.ArchiveVersionValidationResult result = versionService.validateUnarchiveVersion(user, versionToUnarchive);
+                    if (result.getErrorCollection().hasAnyErrors()) {
+                        messages.addAll(processErrors(result.getErrorCollection(), versionToUnarchive.getName(), project));
+                    } else {
+                        versionService.unarchiveVersion(result);
+                        messages.add(createMessage("Version was unarchived successfully.", versionToUnarchive.getName(), project, SUCCESS_STYLE_CLASS));
+                    }
+                }
+                else {
+                    messages.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                }
+            }
+        }
+
+        return messages;
+    }
+
+    private ArrayList<Message> processDelete(String[] projects, String[] versions, ApplicationUser user) {
+        ArrayList<Message> messages = new ArrayList<Message>();
+
+        Collection<Version> versionsToDelete = new HashSet();
+        for (String version : versions) {
+            // get version object by id and put it into a collection so that we know which versions to delete even when they get deleted
+            versionsToDelete.add(versionManager.getVersion(Long.parseLong(version)));
+        }
+        for (String project : projects) {
+            for (Version version : versionsToDelete) {
+                //get the corresponding version from the project
+                Version versionToDelete = versionManager.getVersion(Long.parseLong(project), version.getName());
+                //delete the version with validation
+                if (versionToDelete != null) {
+                    JiraServiceContext jsc = new JiraServiceContextImpl(user);
+                    DeleteVersionWithReplacementsParameterBuilder deleteVersionWithReplacementsParameterBuilder = versionService.createVersionDeletaAndReplaceParameters(versionToDelete);
+                    DeleteVersionWithCustomFieldParameters deleteVersionWithCustomFieldParameters = deleteVersionWithReplacementsParameterBuilder.build();
+                    ServiceResult result = versionService.deleteVersionAndSwap(jsc, deleteVersionWithCustomFieldParameters);
+                    if (result.getErrorCollection().hasAnyErrors()) {
+                        messages.addAll(processErrors(result.getErrorCollection(), version.getName(), project));
+                    } else {
+                        messages.add(createMessage("Version was deleted successfully.", version.getName(), project, SUCCESS_STYLE_CLASS));
+                    }
+                }
+                else {
+                    messages.add(createMessage(NULL_VERSION, "unknown", project, ERROR_STYLE_CLASS));
+                }
+            }
+        }
+
+        return messages;
     }
 
     //get unique versions from the global list
     private Collection<Version> getAllVersions() {
         Collection<Version> versions = versionManager.getAllVersions();
-        Collection<Version> uniqueVersions = new HashSet();
+        List<Version> uniqueVersions = new ArrayList();
         boolean found;
         //filter out the duplicates
         for (Version version : versions) {
@@ -293,9 +284,16 @@ public class VersionControl extends HttpServlet{
                 uniqueVersions.add(version);
             }
         }
+        if (uniqueVersions.size() > 0) {
+            Collections.sort(uniqueVersions, new Comparator<Version>() {
+                @Override
+                public int compare(final Version object1, final Version object2) {
+                    return object1.getName().compareTo(object2.getName());
+                }
+            } );
+        }
         return uniqueVersions;
     }
-
 
     private ApplicationUser getCurrentUser() { //HttpServletRequest req
         // To get the current user, we first get the username from the session.
