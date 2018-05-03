@@ -16,7 +16,7 @@
     <resource type="download" name="versioncontrol.css" location="/css/versioncontrol.css"/>
     <resource type="download" name="versioncontrol.js" location="/js/versioncontrol.js"/>
     <resource type="download" name="images/" location="/images"/>
-    <context>versioncontrol</context>
+    <context>versioncontrol-resources</context>
   </web-resource>
   <servlet name="Version Control" i18n-name-key="version-control.name" key="version-control" class="com.asigra.plugins.servlet.VersionControl">
     <description key="version-control.description">The Version Control Plugin</description>
@@ -24,12 +24,12 @@
   </servlet>
   <web-item key="versioncontrol-link-1" i18n-name-key="version-control.name" section="admin_project_menu/project_section" weight="12" application="jira">
     <description key="version-control.link-description">Link to Version Control page.</description>
-    <label key="Version Control"/>
+    <label key="version-control.name"/>
     <link linkId="versioncontrol-link-1">/plugins/servlet/versioncontrol</link>
   </web-item>
   <web-item key="versioncontrol-link-2" i18n-name-key="version-control.name" section="system.admin/globalsettings" weight="11" application="jira">
     <description key="version-control.link-description">Link to Version Control page.</description>
-    <label key="Version Control"/>
+    <label key="version-control.name"/>
     <link linkId="versioncontrol-link-2">/plugins/servlet/versioncontrol</link>
   </web-item>
 </atlassian-plugin>

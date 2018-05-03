@@ -5,69 +5,11 @@
     $webResourceManager.requireResource("com.atlassian.auiplugin:dialog2")
     $webResourceManager.requireResource("com.atlassian.auiplugin:aui-select2")
     $webResourceManager.requireResource("com.atlassian.auiplugin:aui-form-notification")
+    $webResourceManager.requireResourcesForContext("versioncontrol-resources")
     <meta name="decorator" content="atl.general">
+
 </head>
 <body class="aui-page-focused aui-page-size-large">
-<script>
-    jQuery.ajax('/jira/rest/api/2/project', {
-        dataType : 'json',
-    }).done(function(res){
-        var projSelect = jQuery('#projects');
-        jQuery.each(res, function(idx, item){
-            projSelect.append('<option value="' + item.id +'">' + item.name + '</option>');
-        });
-        //projSelect.auiSelect2();
-    });
-
-    AJS.toInit(function() {
-        // Hides the dialog
-        AJS.$("#dialog-close-button").click(function(e) {
-            e.preventDefault();
-            AJS.dialog2("#demo-dialog").hide();
-            $("#action").val("");
-        });
-
-        // Hides the dialog
-        AJS.$("#dialog-submit-button").click(function(e) {
-            e.preventDefault();
-            AJS.dialog2("#demo-dialog").hide();
-            $("#admin").submit();
-        });
-    });
-
-    // Shows the dialog when an action button is clicked
-    function dialog(action){
-        var valid = true;
-        if(!$("#versions").val()){
-            console.log("versions: "+ $("#versions").val());
-            valid = false;
-            //$("#versions").prop("data-aui-notification-field");
-            $("#versions-error").text("Please select a value");
-        }
-        else{
-            $("#versions-error").text("");
-        }
-        if(!$("#projects").val()){
-            console.log("projects: "+ $("#projects").val());
-            valid = false;
-            $("#projects-error").text("Please select a value");
-        }
-        else{
-            $("#projects-error").text("");
-        }
-        if(valid){
-            var template = "${confirm_message}";
-            var pos = template.indexOf("*");
-            var message = template.substr(0, pos) + "<b>" + action + "</b>" + template.substr(pos+1);
-
-            $("#confirm-message").html(message);
-
-            AJS.dialog2("#demo-dialog").show();
-            $("#action").val(action);
-        }
-    }
-
-</script>
 <header class="aui-page-header">
     <div class="aui-page-header-inner">
         <div class="aui-page-header-main">
@@ -82,17 +24,17 @@
                 <fieldset>
                     <p>
                         <b>Description:</b><br>
-                        $description<br>
+                        $description<br><br>
                     </p>
                     <div class="field-group">
                         <label>Project: <span class="aui-icon icon-required"></span></label>
-                        <select data-aui-notification-field data-container-class="project-ss" class="select" id="projects" name="projects" size="5" multiple>
+                        <select data-aui-notification-field data-container-class="project-ss" class="select resizable" id="projects" name="projects" size="5" multiple>
                         </select>
                         <div class="error" id="projects-error"></div>
                     </div>
                     <div class="field-group">
                         <label>Versions: <span class="aui-icon icon-required"></span></label>
-                        <select data-aui-notification-field data-container-class="versions-ss" class="select" id="versions" name="versions" size="5" multiple>
+                        <select data-aui-notification-field data-container-class="versions-ss" class="select resizable" id="versions" name="versions" size="5" multiple>
                             #if($versions)
                                 #foreach($version in $versions)
                                     <option value="$version.getId()">$version.getName()</option>
@@ -142,7 +84,9 @@
     </header>
     <!-- Main dialog content -->
     <div class="aui-dialog2-content">
+        <input type="hidden" id="confirm-message-text" value="$confirm_message">
         <p id="confirm-message"></p>
+        <div id="affected-count"></div>
     </div>
     <!-- Dialog footer -->
     <footer class="aui-dialog2-footer">
